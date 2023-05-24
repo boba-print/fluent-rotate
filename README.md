@@ -35,7 +35,7 @@ $ node app.js --filename myLogs-%DATE%.txt --datePattern YYYY-MM-DD-HH --zip fal
 This application supports packaging with pkg.js. You can create a standalone executable version of the application as follows:
 
 1. Install pkg globally with npm install -g pkg.
-2. Run the command pkg . in the root directory of the application.
+2. Run the command `npm run build` in the root directory of the application.
 
 This will generate executables for different platforms. You can run these executables as standalone applications.
 
