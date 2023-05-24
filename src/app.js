@@ -47,6 +47,8 @@ if (!path.isAbsolute(filename)) {
   filename = path.join(baseDir, filename);
 }
 
+console.log(filename);
+
 const transport = new winston.transports.DailyRotateFile({
   filename: filename,
   datePattern: argv.datePattern || "YYYY-MM-DD",
@@ -61,7 +63,23 @@ const logger = winston.createLogger({
 });
 
 app.post("/logs", (req, res) => {
-  logger.info(req.body);
+  let data = req.body;
+
+  // Default level to 'info'
+  let level = "info";
+
+  // Check if level exists and is valid
+  if (
+    data.level &&
+    ["error", "warn", "info", "verbose", "debug", "silly"].includes(data.level)
+  ) {
+    level = data.level;
+  }
+
+  // Remove level from data to avoid redundancy in log
+  delete data.level;
+
+  logger.log(level, data);
   res.sendStatus(200);
 });
 
