@@ -1,15 +1,43 @@
-## FluentRotate
+# FluentRotate
 
-FluentRotate is a logging agent that simplifies the handling of Fluentd and Fluent Bit logs with log rotating mechanism. It provides a log reception process using the HTTP protocol and offers convenient configurations for log storage, rotation, and CLI commands.
+This is an Express.js application that receives logs from Fluentd via an HTTP endpoint and saves them to a file. The log files are rotated based on the defined retention policy. It's designed to work with Promtail, which can read the generated log files.
 
-### Key Features:
+## Prerequisites
 
-1. **Effortless Log Reception**: FluentRotate integrates with Fluentd and Fluent Bit. Through the widely supported HTTP protocol and Fluentd HTTP output, you can easily receive logs without complex setup procedures.
+You need to have Node.js and npm installed on your machine. This app has been tested with Node.js v14 and later.
 
-2. **Local Storage Based**: Logs are simply stored in local storage, ensuring easy accessibility with simple editors when needed.
+## Getting Started
 
-3. **Automated Log Rotation**: Managing log files becomes a breeze with FluentRotate. It automates the log rotation process based on customizable parameters, optimizing storage usage and preventing logs from overwhelming your system.
+To get started with this application, you should:
 
-4. **Simple CLI Configuration**: Configure logging settings effortlessly using FluentRotate's intuitive command-line interface. With just a few commands, you can customize log formats, apply filters, define output destination.
+1. Clone this repository.
+2. Install the dependencies with `npm install`.
+3. Run the application with node.
 
-FluentRotate is an invaluable tool for developers offering a straightforward and efficient approach to managing Fluentd logs. 
+## Usage
+
+The application has several command-line options that you can use to customize its behavior:
+
+- `filename`: The filename pattern for log files. Defaults to `logs-%DATE%.txt`.
+- `datePattern`: The date pattern to use in log filenames. Defaults to `YYYY-MM-DD`.
+- `zip`: Enable or disable the zipping of archived log files. Defaults to `false`.
+- `maxSize`: The maximum size of a log file before it's rotated. Defaults to `20m`.
+- `maxFiles`: The maximum number of log files to keep before deleting old ones. Defaults to `14d`.
+- `port`: The port number on which the server will listen. Defaults to `3000`.
+
+You can pass these options to the application as follows:
+
+```bash
+$ node app.js --filename myLogs-%DATE%.txt --datePattern YYYY-MM-DD-HH --zip false --maxSize 50m --maxFiles 30d --port 8080
+```
+
+## Packaging the Application
+This application supports packaging with pkg.js. You can create a standalone executable version of the application as follows:
+
+1. Install pkg globally with npm install -g pkg.
+2. Run the command pkg . in the root directory of the application.
+
+This will generate executables for different platforms. You can run these executables as standalone applications.
+
+## License
+This project is licensed under the MIT License.

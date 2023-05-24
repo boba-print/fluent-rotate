@@ -1,0 +1,26 @@
+{
+  "name": "fluent-rotate",
+  "version": "1.0.0",
+  "description": "FluentRotate is a logging agent that simplifies the handling of Fluentd and Fluent Bit logs with log rotating mechanism. It provides a log reception process using the HTTP protocol and offers convenient configurations for log storage, rotation, and CLI commands.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boba-print/fluent-rotate.git"
+  },
+  "keywords": [],
+  "author": "@KYUUUW",
+  "license": "MIT License",
+  "bugs": {
+    "url": "https://github.com/boba-print/fluent-rotate/issues"
+  },
+  "homepage": "https://github.com/boba-print/fluent-rotate#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "winston": "^3.8.2",
+    "winston-daily-rotate-file": "^4.7.1",
+    "yargs": "^17.7.2"
+  }
+}
