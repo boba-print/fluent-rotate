@@ -75,7 +75,9 @@ function processLogData(data, defaultLevel = "info") {
 }
 
 app.post("/logs", (req, res) => {
-  let data = req.body;
+  res.set("Connection", "close"); // Prevents Fluentd from hanging
+  
+  const data = req.body;
 
   // Check if data is an array or object
   if (Array.isArray(data)) {
@@ -97,3 +99,7 @@ app.post("/logs", (req, res) => {
 app.listen(argv.port || 3000, () =>
   console.log(`Listening on port ${argv.port || 3000}`)
 );
+
+setInterval(() => {
+  logger.log("info", "This is a test log message.");
+}, 3000);
