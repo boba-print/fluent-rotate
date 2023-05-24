@@ -47,8 +47,6 @@ if (!path.isAbsolute(filename)) {
   filename = path.join(baseDir, filename);
 }
 
-console.log(filename);
-
 const transport = new winston.transports.DailyRotateFile({
   filename: filename,
   datePattern: argv.datePattern || "YYYY-MM-DD",
@@ -62,24 +60,37 @@ const logger = winston.createLogger({
   transports: [transport],
 });
 
-app.post("/logs", (req, res) => {
-  let data = req.body;
+function processLogData(data, defaultLevel = "info") {
+  let level = defaultLevel;
 
-  // Default level to 'info'
-  let level = "info";
-
-  // Check if level exists and is valid
   if (
     data.level &&
     ["error", "warn", "info", "verbose", "debug", "silly"].includes(data.level)
   ) {
     level = data.level;
+    delete data.level;
   }
 
-  // Remove level from data to avoid redundancy in log
-  delete data.level;
-
   logger.log(level, data);
+}
+
+app.post("/logs", (req, res) => {
+  let data = req.body;
+
+  // Check if data is an array or object
+  if (Array.isArray(data)) {
+    // Log each item in the array
+    data.forEach((item) => processLogData(item));
+  } else if (typeof data === "object") {
+    // Log the object
+    processLogData(data);
+  } else {
+    res
+      .status(400)
+      .send("Invalid data. Must be an object or array of objects.");
+    return;
+  }
+
   res.sendStatus(200);
 });
 
