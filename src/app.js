@@ -99,7 +99,3 @@ app.post("/logs", (req, res) => {
 app.listen(argv.port || 3000, () =>
   console.log(`Listening on port ${argv.port || 3000}`)
 );
-
-setInterval(() => {
-  logger.log("info", "This is a test log message.");
-}, 3000);
