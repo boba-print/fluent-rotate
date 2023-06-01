@@ -1,6 +1,6 @@
 {
   "name": "fluent-rotate",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "FluentRotate is a logging agent that simplifies the handling of Fluentd and Fluent Bit logs with log rotating mechanism. It provides a log reception process using the HTTP protocol and offers convenient configurations for log storage, rotation, and CLI commands.",
   "main": "src/index.js",
   "scripts": {

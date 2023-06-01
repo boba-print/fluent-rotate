@@ -16,6 +16,40 @@ To get started with this application, you should:
 
 ## Usage
 
+### HTTP Request
+
+To record logs, simply send the log data in JSON format to the `/log` URL. The data can contain an array or object format.
+
+```bash
+curl -X POST -H "Content-Type: application/json" -H "X-Tag: tag_value" -d '{"log": "your log data"}' http://host_name/log
+```
+
+##### Example
+
+```json
+// Data in the object format.
+
+{
+  "date": "2023-06-01T01:02:03Z",
+  "level": "info",
+  "message": "...",
+  ...
+}
+
+// Data in the array format.
+[
+  {
+    "date": "2023-06-01T01:02:03Z",
+    "level": "info",
+    "message": "...",
+    ...
+  },
+  ...
+]
+```
+
+### CLI
+
 The application has several command-line options that you can use to customize its behavior:
 
 - `filename`: The filename pattern for log files. Defaults to `logs-%DATE%.txt`.

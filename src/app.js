@@ -47,7 +47,7 @@ if (!path.isAbsolute(filename)) {
   filename = path.join(baseDir, filename);
 }
 
-const transport = new winston.transports.DailyRotateFile({
+const dailyRotateFileTransports = new winston.transports.DailyRotateFile({
   filename: filename,
   datePattern: argv.datePattern || "YYYY-MM-DD",
   zippedArchive: argv.zip || false,
@@ -57,12 +57,15 @@ const transport = new winston.transports.DailyRotateFile({
 
 const logger = winston.createLogger({
   format: winston.format.json(),
-  transports: [transport],
+  transports: [dailyRotateFileTransports, new winston.transports.Console()],
 });
 
-function processLogData(data, defaultLevel = "info") {
-  let level = defaultLevel;
+function processLogData(tag, data, defaultLevel = "info") {
+  if (typeof tag === "string") {
+    data.tag = tag;
+  }
 
+  let level = defaultLevel;
   if (
     data.level &&
     ["error", "warn", "info", "verbose", "debug", "silly"].includes(data.level)
@@ -76,16 +79,17 @@ function processLogData(data, defaultLevel = "info") {
 
 app.post("/logs", (req, res) => {
   res.set("Connection", "close"); // Prevents Fluentd from hanging
-  
+
+  const tag = req.get("X-Tag");
   const data = req.body;
 
   // Check if data is an array or object
   if (Array.isArray(data)) {
     // Log each item in the array
-    data.forEach((item) => processLogData(item));
+    data.forEach((item) => processLogData(tag, item));
   } else if (typeof data === "object") {
     // Log the object
-    processLogData(data);
+    processLogData(tag, data);
   } else {
     res
       .status(400)
