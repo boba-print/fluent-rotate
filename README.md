@@ -28,7 +28,8 @@ curl -X POST -H "Content-Type: application/json" -H "X-Tag: tag_value" -d '{"log
 
 - The `X-Tag` header value is written to each record as `tag`.
 - `level` (`error`, `warn`, `info`, `verbose`, `debug`, `silly`) sets the log level; any other value or no value logs at `info`.
-- Responses: `200` on success, `400` for invalid JSON or a non-object body, `413` for a body over 100 KB. Successful responses carry `Connection: close` so Fluentd/Fluent Bit do not hang.
+- Responses for `Content-Type: application/json`: `200` for an object or array, `400` for invalid JSON or JSON that is not an object/array, `413` for a body over 100 KB. Successful responses carry `Connection: close` so Fluentd/Fluent Bit do not hang.
+- Other edge cases: a body with a non-JSON `Content-Type` is answered `200` and logs an empty record; an array containing `null` returns `500`. Error responses use Express's default handler, which includes the stack trace because the service runs without `NODE_ENV=production`, so keep the port reachable only from the same server.
 
 ##### Example
 
@@ -75,8 +76,24 @@ $ node src/app.js --filename myLogs-%DATE%.txt --datePattern YYYY-MM-DD-HH --zip
 
 - The PSL server installer ([boba-print/psl-server-installer-v2](https://github.com/boba-print/psl-server-installer-v2)) registers `bin\fluent-rotate\fluent-rotate.exe` as the NSSM service `fluent-rotate` with `--filename "<log file>" --port 4002`. The installer takes the executable from `fileList\bin\fluent-rotate\` on the installer build PC (`fileList` is not tracked in git).
 - Fluent Bit on the same server forwards every record to `http://localhost:4002/logs` (`Format json`, `Header_tag X-Tag`). Agents and the server send logs to Fluent Bit on port 4001, not to this app.
-- Port 4002 is only used from the same server. Keep it closed to other hosts in the Windows firewall (the installer's `PSL-in` rule should not include 4002).
+- Port 4002 is only used from the same server, but the installer's firewall script (`fileList/bin/install_script/02.firewall_and_vcruntime_setting.ps1`) currently opens TCP 4001-4003 inbound in the `PSL-in` rule. To close 4002 to other hosts, change that rule to keep 4001 and drop 4002-4003 (installer change, or on an installed server: `netsh advfirewall firewall set rule name="PSL-in" new localport=<ports without 4002-4003>`).
 - The executable is also kept in [boba-print/psl-admin-backend](https://github.com/boba-print/psl-admin-backend) under `bin/fluent-rotate/`.
+
+### Replacing the executable on an installed server
+
+Run in an administrator PowerShell on the PSL server:
+
+```powershell
+$exe = 'C:\psl\bin\fluent-rotate\fluent-rotate.exe'
+Stop-Service fluent-rotate
+Copy-Item $exe "$exe.bak-$(Get-Date -Format yyyyMMdd)"   # keep the old one for rollback
+Copy-Item .\fluent-rotate.exe $exe -Force                  # the new build
+(Get-FileHash $exe).Hash                                   # must match the released SHA-256
+Start-Service fluent-rotate
+Get-ChildItem C:\psl\logs\log.txt.* | Sort-Object LastWriteTime | Select-Object -Last 1   # LastWriteTime keeps moving
+```
+
+Rollback: `Stop-Service fluent-rotate`, copy the `.bak-<date>` file back over `fluent-rotate.exe`, `Start-Service fluent-rotate`.
 
 ## Packaging the Application
 
@@ -90,7 +107,8 @@ This generates `fluent-rotate.exe` for Windows x64 with the Node.js 24 runtime (
 Notes:
 
 - On an Apple Silicon Mac, pkg runs a macOS x64 Node.js to generate the bytecode, so Rosetta 2 must be installed.
-- pkg downloads the base binaries into `~/.pkg-cache/v3.6/`. If the GitHub download fails, fetch them with `gh release download v3.6 -R yao-pkg/pkg-fetch -p node-v24.22.1-win-x64 -p node-v24.22.1-win-x64.sha256sum`, check the SHA-256, and save the binary as `~/.pkg-cache/v3.6/fetched-v24.22.1-win-x64`.
+- pkg downloads the base binaries into `~/.pkg-cache/v3.6/` and checks their SHA-256. If the GitHub download fails, fetch them with `gh release download v3.6 -R yao-pkg/pkg-fetch -p node-v24.22.1-win-x64` and save the file as `~/.pkg-cache/v3.6/fetched-v24.22.1-win-x64`. On an Apple Silicon Mac, do the same for `node-v24.22.1-macos-x64` (saved as `fetched-v24.22.1-macos-x64`).
+- The executable is about 95 MiB, close to GitHub's 100 MiB per-file limit. Check the size before committing it to another repository.
 
 ## License
 This project is licensed under the MIT License.
