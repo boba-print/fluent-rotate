@@ -7,7 +7,7 @@ PSL 서버에서 Fluent Bit가 넘기는 로그를 HTTP(`POST /logs`)로 받아 
 현장 서버는 Fluent Bit 설정을 바꾸지 않고 exe만 교체한다. 그래서 바뀐 exe도 아래를 그대로 지킨다.
 
 - 경로 `/logs`, `X-Tag` → `tag`, `level` 처리, 로그 한 줄의 JSON 모양, 파일 이름 규칙(`<filename>.<날짜>` + audit json)
-- 응답: 성공 200 + `Connection: close`, 잘못된 JSON 400, 100KB 초과 413
+- 응답: 성공 200 + `Connection: close`, 잘못된 JSON 400, 100KB 초과 413. 오류 응답 본문은 상태 문구만(`app.set("env", "production")`) — 스택·설치 경로는 콘솔에만
 - 실행 인자: `--filename "<경로>" --port 4002` (경로에 공백이 들어갈 수 있다)
 - 포트만 지정한 `listen` — 모든 주소(`::`)에서 받는다. Fluent Bit는 `localhost`로 보내는데 이것이 IPv4·IPv6 어느 쪽으로 풀릴지 서버마다 다르므로, 바인드 주소를 좁히는 변경은 실제 Fluent Bit 전송 검증과 함께 한다. 외부 노출은 서버 방화벽으로 막아야 하는데, **지금 인스톨러의 `PSL-in` 규칙은 4001-4003을 연다** — 막는 방법은 README의 Use in PSL 절.
 

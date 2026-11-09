@@ -29,7 +29,8 @@ curl -X POST -H "Content-Type: application/json" -H "X-Tag: tag_value" -d '{"log
 - The `X-Tag` header value is written to each record as `tag`.
 - `level` (`error`, `warn`, `info`, `verbose`, `debug`, `silly`) sets the log level; any other value or no value logs at `info`.
 - Responses for `Content-Type: application/json`: `200` for an object or array, `400` for invalid JSON or JSON that is not an object/array, `413` for a body over 100 KB. Successful responses carry `Connection: close` so Fluentd/Fluent Bit do not hang.
-- Other edge cases: a body with a non-JSON `Content-Type` is answered `200` and logs an empty record; an array containing `null` returns `500`. Error responses use Express's default handler, which includes the stack trace because the service runs without `NODE_ENV=production`, so keep the port reachable only from the same server.
+- Other edge cases: a body with a non-JSON `Content-Type` is answered `200` and logs an empty record; an array containing `null` returns `500`.
+- Error responses carry only the HTTP status message (for example `Bad Request`). The app sets Express's `env` to `production` itself, because the service runs without `NODE_ENV`; the stack trace still goes to the console.
 
 ##### Example
 
