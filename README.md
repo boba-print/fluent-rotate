@@ -87,14 +87,16 @@ Run in an administrator PowerShell on the PSL server:
 ```powershell
 $exe = 'C:\psl\bin\fluent-rotate\fluent-rotate.exe'
 Stop-Service fluent-rotate
-Copy-Item $exe "$exe.bak-$(Get-Date -Format yyyyMMdd)"   # keep the old one for rollback
+$bak = "$exe.bak-$(Get-Date -Format yyyyMMdd-HHmmss)"     # keep the old one for rollback (one per run)
+if (Test-Path $bak) { throw "backup already exists: $bak" }
+Copy-Item $exe $bak
 Copy-Item .\fluent-rotate.exe $exe -Force                  # the new build
 (Get-FileHash $exe).Hash                                   # must match the released SHA-256
 Start-Service fluent-rotate
 Get-ChildItem C:\psl\logs\log.txt.* | Sort-Object LastWriteTime | Select-Object -Last 1   # LastWriteTime keeps moving
 ```
 
-Rollback: `Stop-Service fluent-rotate`, copy the `.bak-<date>` file back over `fluent-rotate.exe`, `Start-Service fluent-rotate`.
+Rollback: `Stop-Service fluent-rotate`, copy the **oldest** `.bak-<date>-<time>` file from this replacement back over `fluent-rotate.exe` (if you ran the steps more than once, the newer backups are copies of the new build), `Start-Service fluent-rotate`.
 
 ## Packaging the Application
 
