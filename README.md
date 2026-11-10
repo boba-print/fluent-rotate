@@ -1,41 +1,45 @@
 # FluentRotate
 
-This is an Express.js application that receives logs from Fluent Bit (or Fluentd) via an HTTP endpoint and saves them to a file. The log files are rotated based on the defined retention policy. It's designed to work with Promtail, which can read the generated log files.
+Fluent Bit(또는 Fluentd)이 HTTP 로 보내는 로그를 받아 파일로 저장하는 Express.js 앱이다. 로그 파일은 정해 둔 보존 정책에 따라 회전(rotate)한다. 만들어진 로그 파일은 Promtail 이 읽어 가도록 설계했다.
 
-In PSL, it runs on the PSL server as the `fluent-rotate` Windows service (see [Use in PSL](#use-in-psl)).
+PSL 에서는 PSL 서버에서 Windows 서비스 `fluent-rotate` 로 돈다([PSL 에서의 사용](#psl-에서의-사용) 참고).
 
-## Prerequisites
+## 준비물
 
-You need to have Node.js and npm installed on your machine. Node.js 22 or later is required to build; the packaged executable runs on Node.js 24 (v24.22.1).
+Node.js 와 npm 이 있어야 한다. 빌드에는 Node.js 22 이상이 필요하고, 패키징한 실행 파일에는 Node.js 24(v24.22.1)가 들어간다.
 
-## Getting Started
+## 시작하기
 
-To get started with this application, you should:
+1. 저장소를 클론한다.
+2. `npm ci` 로 의존성을 설치한다.
+3. `npm start`(또는 `node src/app.js`)로 실행한다.
 
-1. Clone this repository.
-2. Install the dependencies with `npm ci`.
-3. Run the application with `npm start` (or `node src/app.js`).
+## 사용법
 
-## Usage
+### HTTP 요청
 
-### HTTP Request
-
-To record logs, simply send the log data in JSON format to the `/logs` URL. The data can contain an array or object format.
+로그 데이터를 JSON 으로 `/logs` 에 보내면 기록된다. 데이터는 배열이나 객체 형식이면 된다.
 
 ```bash
 curl -X POST -H "Content-Type: application/json" -H "X-Tag: tag_value" -d '{"log": "your log data"}' http://host_name/logs
 ```
 
-- The `X-Tag` header value is written to each record as `tag`.
-- `level` (`error`, `warn`, `info`, `verbose`, `debug`, `silly`) sets the log level; any other value or no value logs at `info`.
-- Responses for `Content-Type: application/json`: `200` for an object or array, `400` for invalid JSON or JSON that is not an object/array, `413` for a body over 100 KB. Successful responses carry `Connection: close` so Fluentd/Fluent Bit do not hang.
-- Other edge cases: a body with a non-JSON `Content-Type` is answered `200` and logs an empty record; an array containing `null` returns `500`.
-- Error responses carry only the HTTP status message (for example `Bad Request`). The app sets Express's `env` to `production` itself, because the service runs without `NODE_ENV`; the stack trace still goes to the console.
+- `X-Tag` 헤더 값은 각 레코드에 `tag` 로 들어간다.
+- `level`(`error`, `warn`, `info`, `verbose`, `debug`, `silly`)로 로그 레벨을 정한다. 다른 값이거나 값이 없으면 `info` 로 기록한다.
+- `Content-Type: application/json` 요청의 응답:
+  - 객체나 배열이면 `200`
+  - 잘못된 JSON 이거나 객체·배열이 아닌 JSON 이면 `400`
+  - 본문이 100 KB 를 넘으면 `413`
+  - 성공 응답에는 `Connection: close` 를 붙인다. Fluentd/Fluent Bit 이 연결을 붙잡고 멈추지 않게 하기 위해서다.
+- 그 밖의 경우:
+  - JSON 이 아닌 `Content-Type` 의 본문은 `200` 으로 답하고 빈 레코드를 기록한다.
+  - `null` 이 들어 있는 배열은 `500` 을 돌려준다.
+- 오류 응답 본문에는 HTTP 상태 메시지(예: `Bad Request`)만 담는다. 서비스가 `NODE_ENV` 없이 돌기 때문에 앱이 직접 Express 의 `env` 를 `production` 으로 설정한다. 스택 트레이스는 콘솔에만 남는다.
 
-##### Example
+##### 예시
 
 ```json
-// Data in the object format.
+// 객체 형식 데이터
 
 {
   "date": "2023-06-01T01:02:03Z",
@@ -44,7 +48,7 @@ curl -X POST -H "Content-Type: application/json" -H "X-Tag: tag_value" -d '{"log
   ...
 }
 
-// Data in the array format.
+// 배열 형식 데이터
 [
   {
     "date": "2023-06-01T01:02:03Z",
@@ -58,60 +62,66 @@ curl -X POST -H "Content-Type: application/json" -H "X-Tag: tag_value" -d '{"log
 
 ### CLI
 
-The application has several command-line options that you can use to customize its behavior:
+명령줄 옵션으로 동작을 바꿀 수 있다.
 
-- `filename`: The filename pattern for log files. Defaults to `logs-%DATE%.txt`. Relative paths are resolved from the current working directory.
-- `datePattern`: The date pattern to use in log filenames. Defaults to `YYYY-MM-DD`.
-- `zip`: Enable or disable the zipping of archived log files. Defaults to `false`.
-- `maxSize`: The maximum size of a log file before it's rotated. Defaults to `20m`.
-- `maxFiles`: The maximum number of log files to keep before deleting old ones. Defaults to `14d`.
-- `port`: The port number on which the server will listen. Defaults to `3000`. The server listens on all interfaces.
+- `filename`: 로그 파일 이름 패턴. 기본값 `logs-%DATE%.txt`. 상대 경로는 현재 작업 디렉터리 기준이다.
+- `datePattern`: 로그 파일 이름에 쓰는 날짜 패턴. 기본값 `YYYY-MM-DD`.
+- `zip`: 회전된 로그 파일을 압축할지 여부. 기본값 `false`.
+- `maxSize`: 회전하기 전 로그 파일 최대 크기. 기본값 `20m`.
+- `maxFiles`: 오래된 파일을 지우기 전까지 남겨 둘 로그 파일 수(또는 기간). 기본값 `14d`.
+- `port`: 서버가 받을 포트 번호. 기본값 `3000`. 모든 인터페이스에서 받는다.
 
-You can pass these options to the application as follows:
+옵션은 다음처럼 넘긴다.
 
 ```bash
 $ node src/app.js --filename myLogs-%DATE%.txt --datePattern YYYY-MM-DD-HH --zip false --maxSize 50m --maxFiles 30d --port 8080
 ```
 
-## Use in PSL
+## PSL 에서의 사용
 
-- The PSL server installer ([boba-print/psl-server-installer-v2](https://github.com/boba-print/psl-server-installer-v2)) registers `bin\fluent-rotate\fluent-rotate.exe` as the NSSM service `fluent-rotate` with `--filename "<log file>" --port 4002`. The installer takes the executable from `fileList\bin\fluent-rotate\` on the installer build PC (`fileList` is not tracked in git).
-- Fluent Bit on the same server forwards every record to `http://localhost:4002/logs` (`Format json`, `Header_tag X-Tag`). Agents and the server send logs to Fluent Bit on port 4001, not to this app.
-- Port 4002 is only used from the same server. Server installers up to 1.8.10.0 open TCP 4001-4003 inbound in the `PSL-in` firewall rule; from 1.8.10.1 ([psl-server-installer-v2#1](https://github.com/boba-print/psl-server-installer-v2/pull/1)) a fresh install opens only 4001 and an upgrade removes 4002-4003 from the existing rule. On a server that only gets the new executable, close it by hand: `netsh advfirewall firewall set rule name="PSL-in" new localport=<current ports without 4002-4003>`.
-- The executable is also kept in [boba-print/psl-admin-backend](https://github.com/boba-print/psl-admin-backend) under `bin/fluent-rotate/`.
+- PSL 서버 인스톨러([boba-print/psl-server-installer-v2](https://github.com/boba-print/psl-server-installer-v2))가 `bin\fluent-rotate\fluent-rotate.exe` 를 NSSM 서비스 `fluent-rotate` 로 등록한다. 인자는 `--filename "<로그 파일>" --port 4002` 이다. 인스톨러는 인스톨러 빌드 PC 의 `fileList\bin\fluent-rotate\` 에서 실행 파일을 가져간다(`fileList` 는 git 에서 관리하지 않는다).
+- 같은 서버의 Fluent Bit 이 모든 레코드를 `http://localhost:4002/logs` 로 넘긴다(`Format json`, `Header_tag X-Tag`). 에이전트와 서버는 이 앱이 아니라 포트 4001 의 Fluent Bit 으로 로그를 보낸다.
+- 포트 4002 는 같은 서버 안에서만 쓴다.
+  - 서버 인스톨러 1.8.10.0 까지는 `PSL-in` 방화벽 규칙에서 TCP 4001-4003 인바운드를 연다.
+  - 1.8.10.1([psl-server-installer-v2#1](https://github.com/boba-print/psl-server-installer-v2/pull/1))부터는 새로 설치하면 4001 만 열고, 업그레이드하면 기존 규칙에서 4002-4003 을 뺀다.
+  - 실행 파일만 바꾸는 서버는 직접 닫는다: `netsh advfirewall firewall set rule name="PSL-in" new localport=<4002-4003 을 뺀 현재 포트 목록>`.
+- 실행 파일은 [boba-print/psl-admin-backend](https://github.com/boba-print/psl-admin-backend) 의 `bin/fluent-rotate/` 에도 들어 있다.
 
-### Replacing the executable on an installed server
+### 설치된 서버에서 실행 파일 바꾸기
 
-Run in an administrator PowerShell on the PSL server:
+PSL 서버의 관리자 PowerShell 에서 실행한다.
 
 ```powershell
 $exe = 'C:\psl\bin\fluent-rotate\fluent-rotate.exe'
 Stop-Service fluent-rotate
-$bak = "$exe.bak-$(Get-Date -Format yyyyMMdd-HHmmss)"     # keep the old one for rollback (one per run)
+$bak = "$exe.bak-$(Get-Date -Format yyyyMMdd-HHmmss)"     # 되돌릴 때 쓸 옛 파일(실행할 때마다 하나)
 if (Test-Path $bak) { throw "backup already exists: $bak" }
 Copy-Item $exe $bak
-Copy-Item .\fluent-rotate.exe $exe -Force                  # the new build
-(Get-FileHash $exe).Hash                                   # must match the released SHA-256
+Copy-Item .\fluent-rotate.exe $exe -Force                  # 새 빌드
+(Get-FileHash $exe).Hash                                   # 릴리스에 적힌 SHA-256 과 같아야 한다
 Start-Service fluent-rotate
-Get-ChildItem C:\psl\logs\log.txt.* | Sort-Object LastWriteTime | Select-Object -Last 1   # LastWriteTime keeps moving
+Get-ChildItem C:\psl\logs\log.txt.* | Sort-Object LastWriteTime | Select-Object -Last 1   # LastWriteTime 이 계속 바뀌어야 한다
 ```
 
-Rollback: `Stop-Service fluent-rotate`, copy the **oldest** `.bak-<date>-<time>` file from this replacement back over `fluent-rotate.exe` (if you ran the steps more than once, the newer backups are copies of the new build), `Start-Service fluent-rotate`.
+되돌리기: `Stop-Service fluent-rotate` → 이번 교체에서 만든 `.bak-<날짜>-<시각>` 중 **가장 오래된** 파일을 `fluent-rotate.exe` 위에 복사 → `Start-Service fluent-rotate`. 위 절차를 여러 번 실행했다면 그보다 새 백업은 새 빌드의 사본이다.
 
-## Packaging the Application
+## 패키징
 
-This application is packaged with [@yao-pkg/pkg](https://github.com/yao-pkg/pkg) (pinned in `devDependencies`), the same tool and Node.js runtime as the PSL server's `server.exe`. You can create a standalone executable as follows:
+[@yao-pkg/pkg](https://github.com/yao-pkg/pkg)(`devDependencies` 에 버전 고정)로 패키징한다. PSL 서버의 `server.exe` 와 같은 도구, 같은 Node.js 런타임이다. 단독 실행 파일은 이렇게 만든다.
 
-1. Install the dependencies with `npm ci`.
-2. Run the command `npm run build` in the root directory of the application.
+1. `npm ci` 로 의존성을 설치한다.
+2. 저장소 루트에서 `npm run build` 를 실행한다.
 
-This generates `fluent-rotate.exe` for Windows x64 with the Node.js 24 runtime (v24.22.1, from `@yao-pkg/pkg-fetch` 3.6.7) embedded. The executable runs without a separate Node.js installation.
+Node.js 24 런타임(v24.22.1, `@yao-pkg/pkg-fetch` 3.6.7)이 들어간 Windows x64 용 `fluent-rotate.exe` 가 만들어진다. 따로 Node.js 를 설치하지 않아도 실행된다.
 
-Notes:
+참고:
 
-- On an Apple Silicon Mac, pkg runs a macOS x64 Node.js to generate the bytecode, so Rosetta 2 must be installed.
-- pkg downloads the base binaries into `~/.pkg-cache/v3.6/` and checks their SHA-256. If the GitHub download fails, fetch them with `gh release download v3.6 -R yao-pkg/pkg-fetch -p node-v24.22.1-win-x64` and save the file as `~/.pkg-cache/v3.6/fetched-v24.22.1-win-x64`. On an Apple Silicon Mac, do the same for `node-v24.22.1-macos-x64` (saved as `fetched-v24.22.1-macos-x64`).
-- The executable is about 95 MiB, close to GitHub's 100 MiB per-file limit. Check the size before committing it to another repository.
+- Apple Silicon Mac 에서는 pkg 가 바이트코드를 만들 때 macOS x64 Node.js 를 돌리므로 Rosetta 2 가 설치돼 있어야 한다.
+- pkg 는 기반 바이너리를 `~/.pkg-cache/v3.6/` 에 내려받고 SHA-256 을 확인한다.
+  - GitHub 다운로드가 실패하면 `gh release download v3.6 -R yao-pkg/pkg-fetch -p node-v24.22.1-win-x64` 로 받아 `~/.pkg-cache/v3.6/fetched-v24.22.1-win-x64` 로 저장한다.
+  - Apple Silicon Mac 에서는 `node-v24.22.1-macos-x64` 도 같은 방법으로 받아 `fetched-v24.22.1-macos-x64` 로 저장한다.
+- 실행 파일은 약 95 MiB 로, GitHub 의 파일당 100 MiB 한도에 가깝다. 다른 저장소에 커밋하기 전에 크기를 확인한다.
 
-## License
-This project is licensed under the MIT License.
+## 라이선스
+
+MIT 라이선스를 따른다.
