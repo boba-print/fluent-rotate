@@ -38,6 +38,8 @@ const argv = yargs(hideBin(process.argv))
   }).argv;
 
 const app = express();
+// Error responses carry only the status message, not the stack (the service runs without NODE_ENV).
+app.set("env", "production");
 app.use(express.json());
 
 const baseDir = process.cwd();
